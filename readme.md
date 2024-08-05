@@ -63,3 +63,42 @@ Explanation of the code:
 6. Create an instance of `PullRequestHelper` and pass the `connection`, `project`, and `repoList` variables.
 7. Call the `GetOpenPullRequests` method to retrieve the number of open pull requests and store the result in the `prs` variable.
 8. Display the `prs` in JSON format using `Console.WriteLine` and `JsonSerializer.Serialize`.
+
+Example output:
+
+```json
+[
+    {
+        "pipelineName": "Project E2E Testing Daily Run",
+        "buildId": 101234,
+        "status": "Completed",
+        "result": "Succeeded"
+    },
+    {
+        "pipelineName": "Main Integration Test",
+        "buildId": 101235,
+        "status": "Completed",
+        "result": "Succeeded"
+    }
+]
+```
+
+and
+
+```json
+{
+    "total": 2,
+    "pullRequestList": [
+        {
+            "repository": "MyProject",
+            "title": "Add HTTPS support to the Web API",
+            "daysActive": 3.5318986591216
+        },
+        {
+            "repository": "MyProject",
+            "title": "Update main.yml for Azure Pipelines",
+            "daysActive": 2.9816853024375
+        }
+    ]
+}
+```
