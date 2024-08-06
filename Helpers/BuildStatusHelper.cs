@@ -66,6 +66,7 @@ public class BuildStatusHelper(VssConnection connection, string project, List<st
                 BuildId = latestBuild.Id,
                 Status = latestBuild.Status.ToString() ?? string.Empty,
                 Result = latestBuild.Result.ToString() ?? string.Empty,
+                BuildStartDate = latestBuild.StartTime
             };
         }
         else

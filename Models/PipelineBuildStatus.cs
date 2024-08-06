@@ -15,4 +15,7 @@ public class PipelineBuildStatus
 
     [JsonPropertyName("result")]
     public string Result { get; set; } = string.Empty;
+
+    [JsonPropertyName("buildStartDate")]
+    public DateTime? BuildStartDate { get; set; }
 }
