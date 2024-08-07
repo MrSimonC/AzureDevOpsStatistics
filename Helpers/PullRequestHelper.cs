@@ -38,8 +38,6 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
 
                 foreach (var pullRequest in pullRequests)
                 {
-                    var daysActive = (DateTime.Now - pullRequest.CreationDate).TotalDays;
-
                     // Get the number of affected files
                     var iterations = await _gitClient.GetPullRequestIterationsAsync(gitRepo.Id, pullRequest.PullRequestId);
 
@@ -56,9 +54,10 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
 
                     var pullRequestJson = new PullRequest
                     {
+                        Id = pullRequest.PullRequestId,
                         Repository = gitRepo.Name,
                         Title = pullRequest.Title,
-                        DaysActive = daysActive,
+                        CreatedDate = pullRequest.CreationDate,
                         CreatedByName = pullRequest.CreatedBy.DisplayName,
                         AffectedFilesCount = affectedFiles.Count
                     };
