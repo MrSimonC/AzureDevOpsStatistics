@@ -12,4 +12,7 @@ public class PullRequest
 
     [JsonPropertyName("daysActive")]
     public double DaysActive { get; set; }
+
+    [JsonPropertyName("createdByName")]
+    public string CreatedByName { get; set; } = string.Empty;
 }

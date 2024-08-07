@@ -40,7 +40,8 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
                 {
                     Repository = entry.Value,
                     Title = pullRequest.Title,
-                    DaysActive = daysActive
+                    DaysActive = daysActive,
+                    CreatedByName = pullRequest.CreatedBy.DisplayName
                 };
                 pullRequestList.Add(pullRequestJson);
             }
