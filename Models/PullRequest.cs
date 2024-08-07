@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace AzureDevOpsMonitoring.Models;
+namespace AzureDevOpsStatistics.Models;
 
 public class PullRequest
 {
@@ -15,4 +15,7 @@ public class PullRequest
 
     [JsonPropertyName("createdByName")]
     public string CreatedByName { get; set; } = string.Empty;
+
+    [JsonPropertyName("affectedFilesCount")]
+    public int AffectedFilesCount { get; set; }
 }

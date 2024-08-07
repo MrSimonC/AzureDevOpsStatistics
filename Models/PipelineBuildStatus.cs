@@ -1,6 +1,6 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace AzureDevOpsMonitoring.Models;
+namespace AzureDevOpsStatistics.Models;
 
 public class PipelineBuildStatus
 {

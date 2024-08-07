@@ -1,8 +1,8 @@
-using AzureDevOpsMonitoring.Models;
+using AzureDevOpsStatistics.Models;
 using Microsoft.TeamFoundation.SourceControl.WebApi;
 using Microsoft.VisualStudio.Services.WebApi;
 
-namespace AzureDevOpsMonitoring.Helpers;
+namespace AzureDevOpsStatistics.Helpers;
 
 public class PullRequestHelper(VssConnection connection, string project, List<string> repoList)
 {
@@ -12,8 +12,8 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
 
     public async Task<PullRequests> GetOpenPullRequests()
     {
-        var repoIdAndName = await GetRepoIdsAsync(_repoList);
-        var pullRequests = await GetOpenPullRequestsCountAsync(repoIdAndName);
+        var gitRepos = await GetRepoIdsAsync(_repoList);
+        var pullRequests = await GetOpenPullRequestsCountAsync(gitRepos);
         var result = new PullRequests
         {
             Total = pullRequests.Count,
@@ -22,50 +22,82 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
         return result;
     }
 
-    private async Task<List<PullRequest>> GetOpenPullRequestsCountAsync(Dictionary<Guid, string> repoIdAndName)
+    private async Task<List<PullRequest>> GetOpenPullRequestsCountAsync(List<GitRepo> gitRepos)
     {
         var pullRequestList = new List<PullRequest>();
+        var tasks = new List<Task>();
 
-        foreach (var entry in repoIdAndName)
+        foreach (var gitRepo in gitRepos)
         {
-            var pullRequests = await _gitClient.GetPullRequestsAsync(entry.Key, new GitPullRequestSearchCriteria
+            tasks.Add(Task.Run(async () =>
             {
-                Status = PullRequestStatus.Active
-            });
-
-            foreach (var pullRequest in pullRequests)
-            {
-                var daysActive = (DateTime.Now - pullRequest.CreationDate).TotalDays;
-                var pullRequestJson = new PullRequest
+                var pullRequests = await _gitClient.GetPullRequestsAsync(gitRepo.Id, new GitPullRequestSearchCriteria
                 {
-                    Repository = entry.Value,
-                    Title = pullRequest.Title,
-                    DaysActive = daysActive,
-                    CreatedByName = pullRequest.CreatedBy.DisplayName
-                };
-                pullRequestList.Add(pullRequestJson);
-            }
+                    Status = PullRequestStatus.Active
+                });
+
+                foreach (var pullRequest in pullRequests)
+                {
+                    var daysActive = (DateTime.Now - pullRequest.CreationDate).TotalDays;
+
+                    // Get the number of affected files
+                    var iterations = await _gitClient.GetPullRequestIterationsAsync(gitRepo.Id, pullRequest.PullRequestId);
+
+                    // Aggregate changes from all iterations
+                    var affectedFiles = new HashSet<string>();
+                    foreach (var iteration in iterations)
+                    {
+                        var changes = await _gitClient.GetPullRequestIterationChangesAsync(_project, gitRepo.Id, pullRequest.PullRequestId, iteration.Id ?? 0);
+                        foreach (var change in changes.ChangeEntries)
+                        {
+                            affectedFiles.Add(change.Item.Path);
+                        }
+                    }
+
+                    var pullRequestJson = new PullRequest
+                    {
+                        Repository = gitRepo.Name,
+                        Title = pullRequest.Title,
+                        DaysActive = daysActive,
+                        CreatedByName = pullRequest.CreatedBy.DisplayName,
+                        AffectedFilesCount = affectedFiles.Count
+                    };
+                    pullRequestList.Add(pullRequestJson);
+                }
+            }));
         }
+
+        await Task.WhenAll(tasks);
 
         return pullRequestList;
     }
 
-    private async Task<Dictionary<Guid, string>> GetRepoIdsAsync(List<string> repoList)
+    private async Task<List<GitRepo>> GetRepoIdsAsync(List<string> repoList)
     {
-        var repoIds = new Dictionary<Guid, string>();
+        var repoIds = new List<GitRepo>();
+        var tasks = new List<Task>();
 
         foreach (string repoName in repoList)
         {
-            var repo = await _gitClient.GetRepositoryAsync(_project, repoName);
-            if (repo != null)
+            tasks.Add(Task.Run(async () =>
             {
-                repoIds.Add(repo.Id, repo.Name);
-            }
-            else
-            {
-                Console.WriteLine($"Repository {repoName} not found.");
-            }
+                var repo = await _gitClient.GetRepositoryAsync(_project, repoName);
+                if (repo != null)
+                {
+                    repoIds.Add(new GitRepo
+                    {
+                        Id = repo.Id,
+                        Name = repo.Name
+                    });
+                }
+                else
+                {
+                    Console.WriteLine($"Repository {repoName} not found.");
+                }
+            }));
         }
+
+        await Task.WhenAll(tasks);
 
         return repoIds;
     }

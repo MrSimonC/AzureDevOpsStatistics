@@ -1,8 +1,8 @@
-using AzureDevOpsMonitoring.Models;
+using AzureDevOpsStatistics.Models;
 using Microsoft.TeamFoundation.Build.WebApi;
 using Microsoft.VisualStudio.Services.WebApi;
 
-namespace AzureDevOpsMonitoring.Helpers;
+namespace AzureDevOpsStatistics.Helpers;
 
 public class BuildStatusHelper(VssConnection connection, string project, List<string> pipelineNames)
 {
