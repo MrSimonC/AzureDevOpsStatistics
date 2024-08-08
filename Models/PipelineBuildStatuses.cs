@@ -2,7 +2,7 @@
 
 namespace AzureDevOpsStatistics.Models;
 
-public class PullRequests
+public class PipelineBuildStatuses
 {
     [JsonPropertyName("total")]
     public int Total { get; set; }
@@ -10,6 +10,6 @@ public class PullRequests
     [JsonPropertyName("refreshDateUtc")]
     public DateTime RefreshDateUtc { get; set; }
 
-    [JsonPropertyName("pullRequestList")]
-    public List<PullRequest> PullRequestList { get; set; } = [];
+    [JsonPropertyName("pipelineBuildStatusList")]
+    public List<PipelineBuildStatus> PipelineBuildStatusList { get; set; } = [];
 }

@@ -17,6 +17,7 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
         var result = new PullRequests
         {
             Total = pullRequests.Count,
+            RefreshDateUtc = DateTime.UtcNow,
             PullRequestList = pullRequests
         };
         return result;

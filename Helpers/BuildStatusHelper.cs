@@ -10,7 +10,19 @@ public class BuildStatusHelper(VssConnection connection, string project, List<st
     private readonly string _project = project;
     private readonly List<string> _pipelineNames = pipelineNames;
 
-    public async Task<List<PipelineBuildStatus>> GetLatestBuildStatus()
+    public async Task<PipelineBuildStatuses> GetBuildStatusListAsync()
+    {
+        var builds = await GetBuildStatusesAsync();
+        var result = new PipelineBuildStatuses
+        {
+            Total = builds.Count,
+            RefreshDateUtc = DateTime.UtcNow,
+            PipelineBuildStatusList = builds
+        };
+        return result;
+    }
+
+    public async Task<List<PipelineBuildStatus>> GetBuildStatusesAsync()
     {
         var definitions = await _pipelineClient.GetDefinitionsAsync(_project);
         var pipelineIds = GetPipelineIdsByName(definitions, _pipelineNames);
