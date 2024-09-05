@@ -53,6 +53,21 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
                         }
                     }
 
+                    // get linked work items (as the GetPullRequestAsync() returns null for WorkItems)
+                    var workItems = await _gitClient.GetPullRequestWorkItemRefsAsync(gitRepo.Id, pullRequest.PullRequestId);
+                    var workItemIds = new List<int>();
+                    foreach (var workItemIdUnparsed in workItems.Select(workItem => workItem.Id))
+                    {
+                        if (int.TryParse(workItemIdUnparsed, out int workItemId))
+                        {
+                            workItemIds.Add(workItemId);
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Failed to parse work item ID: {workItemIdUnparsed}");
+                        }
+                    }
+
                     var pullRequestJson = new PullRequest
                     {
                         Id = pullRequest.PullRequestId,
@@ -60,7 +75,8 @@ public class PullRequestHelper(VssConnection connection, string project, List<st
                         Title = pullRequest.Title,
                         CreatedDate = pullRequest.CreationDate,
                         CreatedByName = pullRequest.CreatedBy.DisplayName,
-                        AffectedFilesCount = affectedFiles.Count
+                        AffectedFilesCount = affectedFiles.Count,
+                        LinkedWorkItemIds = workItemIds
                     };
                     pullRequestList.Add(pullRequestJson);
                 }

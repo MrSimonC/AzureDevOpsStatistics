@@ -21,4 +21,7 @@ public class PullRequest
 
     [JsonPropertyName("affectedFilesCount")]
     public int AffectedFilesCount { get; set; }
+
+    [JsonPropertyName("linkedWorkItemIds")]
+    public List<int> LinkedWorkItemIds { get; set; } = [];
 }
