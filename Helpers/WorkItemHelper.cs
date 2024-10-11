@@ -11,8 +11,8 @@ public partial class WorkItemHelper(VssConnection connection)
 
     public async Task<List<WorkItemInfo>> GetWorkItemsAsync(int parentId, bool includeRemoved = false)
     {
-        var parentWorkItemRelations = await _workItemClient.GetWorkItemAsync(parentId, expand: WorkItemExpand.Relations);
-        var childIds = parentWorkItemRelations.Relations
+        var parentWorkItem = await _workItemClient.GetWorkItemAsync(parentId, expand: WorkItemExpand.All);
+        var childIds = parentWorkItem.Relations
             .Where(r => r.Rel == "System.LinkTypes.Hierarchy-Forward")
             .Select(r => int.Parse(r.Url.Split('/')[^1]))
             .ToArray();
@@ -20,15 +20,32 @@ public partial class WorkItemHelper(VssConnection connection)
         var childIdsFullDetails = await _workItemClient.GetWorkItemsAsync(childIds, expand: WorkItemExpand.All);
 
         // Collate the required information
-        var workItemInformation = childIdsFullDetails
-            .Where(wi => includeRemoved || IncludeRemovedStatus(wi))
-            .Select(wi => new WorkItemInfo
+        var workItemInformation = new List<WorkItemInfo>
+        {
+            // Add the description value from parentWorkItem as the first entry
+            new() {
+                Id = parentWorkItem.Id ?? 0,
+                Title = HtmlToPlainText(GetFieldValue(parentWorkItem, "System.Title")),
+                Description = HtmlToPlainText(GetDescription(parentWorkItem)),
+                AcceptanceCriteria = HtmlToPlainText(GetAcceptanceCriteria(parentWorkItem)),
+                Discussion = await GetDiscussionAsync(parentWorkItem.Id ?? 0)
+            }
+        };
+
+        foreach (var wi in childIdsFullDetails)
+        {
+            if (includeRemoved || IncludeRemovedStatus(wi))
             {
-                Id = wi.Id ?? 0,
-                Title = HtmlToPlainText(GetFieldValue(wi, "System.Title")),
-                Description = HtmlToPlainText(GetDescription(wi)),
-                AcceptanceCriteria = HtmlToPlainText(GetAcceptanceCriteria(wi))
-            }).ToList();
+                workItemInformation.Add(new WorkItemInfo
+                {
+                    Id = wi.Id ?? 0,
+                    Title = HtmlToPlainText(GetFieldValue(wi, "System.Title")),
+                    Description = HtmlToPlainText(GetDescription(wi)),
+                    AcceptanceCriteria = HtmlToPlainText(GetAcceptanceCriteria(wi)),
+                    Discussion = await GetDiscussionAsync(wi.Id ?? 0)
+                });
+            }
+        }
 
         return workItemInformation;
     }
@@ -66,7 +83,14 @@ public partial class WorkItemHelper(VssConnection connection)
 
         // Decode HTML entities and remove HTML tags
         var plainText = System.Net.WebUtility.HtmlDecode(html);
+        plainText = plainText.Replace("<br>", "\n");
         return FindHtmlTags().Replace(plainText, string.Empty);
+    }
+
+    private async Task<string> GetDiscussionAsync(int workItemId)
+    {
+        var comments = await _workItemClient.GetCommentsAsync(workItemId);
+        return string.Join("\n", comments.Comments.Select(c => HtmlToPlainText(c.Text)));
     }
 
     [GeneratedRegex("<.*?>")]
@@ -79,4 +103,5 @@ public class WorkItemInfo
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string AcceptanceCriteria { get; set; } = string.Empty;
+    public string Discussion { get; set; } = string.Empty;
 }
