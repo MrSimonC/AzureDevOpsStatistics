@@ -1,6 +1,7 @@
 ﻿using Microsoft.TeamFoundation.WorkItemTracking.WebApi;
 using Microsoft.TeamFoundation.WorkItemTracking.WebApi.Models;
 using Microsoft.VisualStudio.Services.WebApi;
+using System.Text.RegularExpressions;
 
 namespace AzureDevOpsStatistics.Helpers;
 
@@ -24,12 +25,36 @@ public class WorkItemHelper(VssConnection connection)
             .Select(wi => new WorkItemInfo
             {
                 Id = wi.Id ?? 0,
-                Title = GetFieldValue(wi, "System.Title"),
-                Description = GetFieldValue(wi, "System.Description"),
-                AcceptanceCriteria = GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria")
+                Title = HtmlToPlainText(GetFieldValue(wi, "System.Title")),
+                Description = HtmlToPlainText(GetDescription(wi)),
+                AcceptanceCriteria = HtmlToPlainText(GetAcceptanceCriteria(wi))
             }).ToList();
 
         return workItemInformation;
+    }
+
+    private static string GetDescription(WorkItem wi)
+    {
+        if (!string.IsNullOrEmpty(GetFieldValue(wi, "System.Description")))
+        {
+            return GetFieldValue(wi, "System.Description");
+        }
+        else
+        {
+            return GetFieldValue(wi, "Microsoft.VSTS.TCM.ReproSteps");
+        }
+    }
+
+    private static string GetAcceptanceCriteria(WorkItem wi)
+    {
+        if (!string.IsNullOrEmpty(GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria")))
+        {
+            return GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria");
+        }
+        else
+        {
+            return GetFieldValue(wi, "Microsoft.VSTS.TCM.SystemInfo");
+        }
     }
 
     private static bool IncludeRemovedStatus(WorkItem workItem)
@@ -45,6 +70,19 @@ public class WorkItemHelper(VssConnection connection)
             return value?.ToString() ?? string.Empty;
         }
         return string.Empty;
+    }
+
+    private static string HtmlToPlainText(string html)
+    {
+        if (string.IsNullOrEmpty(html))
+        {
+            return string.Empty;
+        }
+
+        // Decode HTML entities and remove HTML tags
+        var plainText = System.Net.WebUtility.HtmlDecode(html);
+        plainText = Regex.Replace(plainText, "<.*?>", string.Empty);
+        return plainText;
     }
 }
 
