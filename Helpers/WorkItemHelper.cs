@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 
 namespace AzureDevOpsStatistics.Helpers;
 
-public class WorkItemHelper(VssConnection connection)
+public partial class WorkItemHelper(VssConnection connection)
 {
     private readonly WorkItemTrackingHttpClient _workItemClient = connection.GetClient<WorkItemTrackingHttpClient>();
 
@@ -35,41 +35,26 @@ public class WorkItemHelper(VssConnection connection)
 
     private static string GetDescription(WorkItem wi)
     {
-        if (!string.IsNullOrEmpty(GetFieldValue(wi, "System.Description")))
-        {
-            return GetFieldValue(wi, "System.Description");
-        }
-        else
-        {
-            return GetFieldValue(wi, "Microsoft.VSTS.TCM.ReproSteps");
-        }
+        return !string.IsNullOrEmpty(GetFieldValue(wi, "System.Description"))
+            ? GetFieldValue(wi, "System.Description")
+            : GetFieldValue(wi, "Microsoft.VSTS.TCM.ReproSteps");
     }
 
     private static string GetAcceptanceCriteria(WorkItem wi)
     {
-        if (!string.IsNullOrEmpty(GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria")))
-        {
-            return GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria");
-        }
-        else
-        {
-            return GetFieldValue(wi, "Microsoft.VSTS.TCM.SystemInfo");
-        }
+        return !string.IsNullOrEmpty(GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria"))
+            ? GetFieldValue(wi, "Microsoft.VSTS.Common.AcceptanceCriteria")
+            : GetFieldValue(wi, "Microsoft.VSTS.TCM.SystemInfo");
     }
 
     private static bool IncludeRemovedStatus(WorkItem workItem)
     {
-        var state = GetFieldValue(workItem, "System.State");
-        return state != "Removed";
+        return GetFieldValue(workItem, "System.State") != "Removed";
     }
 
     private static string GetFieldValue(WorkItem workItem, string fieldName)
     {
-        if (workItem.Fields.TryGetValue(fieldName, out var value))
-        {
-            return value?.ToString() ?? string.Empty;
-        }
-        return string.Empty;
+        return workItem.Fields.TryGetValue(fieldName, out var value) ? value?.ToString() ?? string.Empty : string.Empty;
     }
 
     private static string HtmlToPlainText(string html)
@@ -81,9 +66,11 @@ public class WorkItemHelper(VssConnection connection)
 
         // Decode HTML entities and remove HTML tags
         var plainText = System.Net.WebUtility.HtmlDecode(html);
-        plainText = Regex.Replace(plainText, "<.*?>", string.Empty);
-        return plainText;
+        return FindHtmlTags().Replace(plainText, string.Empty);
     }
+
+    [GeneratedRegex("<.*?>")]
+    private static partial Regex FindHtmlTags();
 }
 
 public class WorkItemInfo
